@@ -3,7 +3,10 @@ set -euo pipefail
 
 REPO_OWNER="funny44b5-a11y"
 REPO_NAME="FNStrap"
-API_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+TAG="1.0.0"
+ASSET_NAME="FNStrap.1.0.0"
+
+RELEASE_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG}/${ASSET_NAME}"
 TMP_BIN="/tmp/fnstrap"
 TARGET_BIN="/usr/local/bin/fnstrap"
 
@@ -12,21 +15,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Fetching latest release info for ${REPO_NAME}..."
-RELEASE_JSON=$(curl -fsSL "$API_URL")
-
-DOWNLOAD_URL=$(printf '%s\n' "$RELEASE_JSON" | grep -oE '"browser_download_url": *"[^"]+"' | head -n 1 | cut -d'"' -f4)
-
-if [ -z "$DOWNLOAD_URL" ]; then
-  echo "Error: No uploaded binary asset found in the latest release." >&2
-  echo "Please upload the compiled binary to the release at:" >&2
+echo "Downloading FNStrap (${TAG} / ${ASSET_NAME})..."
+if ! curl -fsSL "$RELEASE_URL" -o "$TMP_BIN"; then
+  echo "Error: Failed to download from '${RELEASE_URL}' (404 or network issue)." >&2
+  echo "Please check the published release tag (TAG) and asset name (ASSET_NAME) at:" >&2
   echo "https://github.com/${REPO_OWNER}/${REPO_NAME}/releases" >&2
-  exit 1
-fi
-
-echo "Downloading FNStrap from ${DOWNLOAD_URL}..."
-if ! curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN"; then
-  echo "Error: Failed to download binary from '${DOWNLOAD_URL}'." >&2
   exit 1
 fi
 
